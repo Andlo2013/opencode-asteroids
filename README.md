@@ -29,6 +29,20 @@ Luego visita `http://localhost:3000`.
 | `←` `→`   | Rotar nave |
 | `↑`       | Propulsar  |
 | `Espacio` | Disparar   |
+| `S`       | Cambiar skin |
+
+## Skins
+
+Pulsa `S` para cambiar la apariencia de la nave. La elección se guarda en el navegador y se mantiene al recargar.
+
+| Skin       | Estilo                    | Color   |
+| ---------- | ------------------------- | ------- |
+| Clásica    | Triángulo clásico         | Blanco  |
+| Interceptor| Caza con alas en flecha   | Cian    |
+| Ovni       | Platillo con cúpula       | Verde   |
+| Espectro   | Silueta angular stealth   | Magenta |
+
+Las skins son solo estéticas: no cambian el tamaño de colisión ni la dificultad.
 
 ## Puntuación
 

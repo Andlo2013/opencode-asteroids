@@ -30,6 +30,116 @@ const SHOOTING_STAR_BLINK      = 1.5;   // segundos de parpadeo final
 const SHOOTING_STAR_POINTS     = 150;   // puntos al destruirla
 const SHOOTING_STAR_COLOR      = '#ffd23f';
 
+// ── Skins ─────────────────────────────────────────────────────────────────────
+const SKIN_STORAGE_KEY = 'asteroids.skin';
+
+const SKINS = [
+  {
+    name: 'CLÁSICA',
+    color: '#fff',
+    nose: 21,
+    flame: { x: -8, spread: 4, color: 'rgba(255, 130, 0, 0.85)' },
+    paths: [[
+      [ 20,  0],   // nariz
+      [-12, -9],   // ala izquierda
+      [ -7,  0],   // muesca trasera
+      [-12,  9],   // ala derecha
+    ]],
+  },
+  {
+    name: 'INTERCEPTOR',
+    color: '#7df9ff',
+    nose: 24,
+    flame: { x: -7, spread: 3, color: 'rgba(95, 216, 255, 0.85)' },
+    paths: [[
+      [ 23,  0],   // nariz
+      [  4, -4],
+      [ -2,-12],   // ala izquierda
+      [ -8, -6],
+      [ -6,  0],   // muesca trasera
+      [ -8,  6],
+      [ -2, 12],   // ala derecha
+      [  4,  4],
+    ]],
+  },
+  {
+    name: 'OVNI',
+    color: '#9dff8a',
+    nose: 17,
+    flame: { x: -14, spread: 4, color: 'rgba(120, 255, 150, 0.85)' },
+    paths: [
+      [              // casco
+        [ 16,  0],
+        [ 11,  4],
+        [  3,  6],
+        [ -7,  6],
+        [-14,  3],
+        [-16,  0],
+        [-14, -3],
+        [ -7, -6],
+        [  3, -6],
+        [ 11, -4],
+      ],
+      [              // cúpula
+        [  8,  0],
+        [  6, -5],
+        [ -1, -7],
+        [ -8, -4],
+        [ -8,  0],
+      ],
+    ],
+  },
+  {
+    name: 'ESPECTRO',
+    color: '#ff7bf2',
+    nose: 22,
+    flame: { x: -12, spread: 3, color: 'rgba(255, 90, 220, 0.85)' },
+    paths: [[
+      [ 21,  0],   // nariz
+      [  2, -3],
+      [ -4,-11],   // ala izquierda
+      [ -9,-10],
+      [ -6, -3],
+      [-13,  0],   // cola
+      [ -6,  3],
+      [ -9, 10],   // ala derecha
+      [ -4, 11],
+      [  2,  3],
+    ]],
+  },
+];
+
+function loadSkin() {
+  try {
+    const saved = parseInt(localStorage.getItem(SKIN_STORAGE_KEY), 10);
+    if (Number.isInteger(saved) && saved >= 0 && saved < SKINS.length) return saved;
+  } catch (e) {
+    // localStorage no disponible (por ejemplo, en algunos contextos file://)
+  }
+  return 0;
+}
+
+function saveSkin(index) {
+  try {
+    localStorage.setItem(SKIN_STORAGE_KEY, String(index));
+  } catch (e) {
+    // Sin persistencia: la skin sigue funcionando durante la sesión
+  }
+}
+
+let skinIndex = loadSkin();
+
+function strokeSkin(skin) {
+  for (const pts of skin.paths) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++)
+      ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.stroke();
+  }
+}
+
 // ── Input ─────────────────────────────────────────────────────────────────────
 const keys = {};
 const justPressed = {};
@@ -75,7 +185,7 @@ class Bullet {
   }
 
   draw() {
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = SKINS[skinIndex].color;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -243,7 +353,7 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = SKINS[skinIndex].nose;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
 
@@ -263,20 +373,23 @@ class Ship {
     // Parpadeo durante invencibilidad de reaparición
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0) return;
 
+    const skin = SKINS[skinIndex];
+
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = skin.color;
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
     // Auras de los power-ups activos
     if (this.speedTimer > 0) {
-      ctx.strokeStyle = `rgba(255, 210, 63, ${0.35 + Math.sin(this.speedTimer * 8) * 0.15})`;
-      ctx.lineWidth   = 1.5;
+      ctx.save();
+      ctx.globalAlpha = 0.35 + Math.sin(this.speedTimer * 8) * 0.15;
       ctx.beginPath();
       ctx.arc(0, 0, 24, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.restore();
     }
     if (this.tripleTimer > 0) {
       ctx.strokeStyle = `rgba(255, 159, 67, ${0.35 + Math.sin(this.tripleTimer * 8) * 0.15})`;
@@ -285,26 +398,20 @@ class Ship {
       ctx.arc(0, 0, 30, 0, Math.PI * 2);
       ctx.stroke();
     }
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = skin.color;
     ctx.lineWidth   = 1.5;
 
-    // Silueta clásica: triángulo con muesca trasera
-    ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
-    ctx.closePath();
-    ctx.stroke();
+    // Silueta de la skin activa
+    strokeSkin(skin);
 
     // Llama del propulsor
     if (this.thrusting && Math.random() > 0.35) {
       const flame = this.speedTimer > 0 ? rand(10, 22) : rand(6, 14);
       ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - flame, 0);
-      ctx.lineTo(-8,  4);
-      ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
+      ctx.moveTo(skin.flame.x, -skin.flame.spread);
+      ctx.lineTo(skin.flame.x - flame, 0);
+      ctx.lineTo(skin.flame.x, skin.flame.spread);
+      ctx.strokeStyle = skin.flame.color;
       ctx.stroke();
     }
 
@@ -524,6 +631,12 @@ function killShip() {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(dt) {
+  // Cambiar skin con S (funciona en cualquier estado)
+  if (pressed('KeyS')) {
+    skinIndex = (skinIndex + 1) % SKINS.length;
+    saveSkin(skinIndex);
+  }
+
   if (state === 'gameover') {
     if (pressed('Space')) initGame();
     particles.forEach(p => p.update(dt));
@@ -620,19 +733,16 @@ function update(dt) {
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
+  const skin = SKINS[skinIndex];
+
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth   = 1.2;
+  ctx.scale(0.5, 0.5);
+  ctx.strokeStyle = skin.color;
+  ctx.lineWidth   = 1.2 / 0.5;
   ctx.lineJoin    = 'round';
-  ctx.beginPath();
-  ctx.moveTo( 9,  0);
-  ctx.lineTo(-6, -5);
-  ctx.lineTo(-3,  0);
-  ctx.lineTo(-6,  5);
-  ctx.closePath();
-  ctx.stroke();
+  strokeSkin(skin);
   ctx.restore();
 }
 
@@ -665,9 +775,13 @@ function drawHUD() {
     ctx.fillStyle = SHIELD_COLOR;
     ctx.fillText('ESCUDO', 14, hudY);
   }
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = SKINS[skinIndex].color;
+  ctx.fillText(`SKIN  ${SKINS[skinIndex].name}  [S]`, W - 14, H - 18);
 }
 
-function drawOverlay(title, sub) {
+function drawOverlay(title, sub, hint) {
   ctx.textAlign   = 'center';
   ctx.fillStyle   = '#fff';
   ctx.font        = 'bold 46px monospace';
@@ -675,6 +789,11 @@ function drawOverlay(title, sub) {
   ctx.font        = '18px monospace';
   ctx.fillStyle   = 'rgba(255,255,255,0.65)';
   ctx.fillText(sub, W / 2, H / 2 + 22);
+  if (hint) {
+    ctx.font      = '16px monospace';
+    ctx.fillStyle = SKINS[skinIndex].color;
+    ctx.fillText(hint, W / 2, H / 2 + 50);
+  }
 }
 
 function draw() {
@@ -690,7 +809,7 @@ function draw() {
   drawHUD();
 
   if (state === 'gameover')
-    drawOverlay('GAME OVER', `PUNTAJE: ${score}   —   ESPACIO PARA REINICIAR`);
+    drawOverlay('GAME OVER', `PUNTAJE: ${score}   —   ESPACIO PARA REINICIAR`, 'S: CAMBIAR SKIN');
 }
 
 // ── Loop principal ────────────────────────────────────────────────────────────

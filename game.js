@@ -12,6 +12,11 @@ const POWERUP_DROP_CHANCE = 0.2;  // probabilidad al destruir un asteroide
 const POWERUP_TTL        = 12;    // segundos que permanece en el campo
 const POWERUP_COLOR      = '#ffd23f';
 
+// ── Escudo ────────────────────────────────────────────────────────────────────
+const SHIELD_COLOR       = '#4dd2ff';  // cian, distinto del amarillo de velocidad
+const SHIELD_RADIUS      = 26;         // radio de la burbuja
+const SHIELD_GRACE       = 0.8;        // invencibilidad breve tras absorber el golpe
+
 // ── Estrella fugaz ───────────────────────────────────────────────────────────
 const SHOOTING_STAR_CHANCE     = 0.35;  // probabilidad de aparecer por nivel
 const SHOOTING_STAR_SPEED_MULT = 2.6;   // multiplica la velocidad base
@@ -199,6 +204,7 @@ class Ship {
     this.invincible    = 3;
     this.shootCooldown = 0;
     this.speedTimer    = 0;
+    this.shield        = false;
     this.dead          = false;
   }
 
@@ -279,6 +285,24 @@ class Ship {
       ctx.stroke();
     }
 
+    // Burbuja del escudo
+    if (this.shield) {
+      const t = performance.now() * 0.006;
+      const r = SHIELD_RADIUS + Math.sin(t) * 1.5;
+      ctx.strokeStyle = `rgba(77, 210, 255, ${0.65 + Math.sin(t) * 0.2})`;
+      ctx.lineWidth   = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(77, 210, 255, 0.08)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(77, 210, 255, 0.3)';
+      ctx.lineWidth   = 1;
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 }
@@ -341,38 +365,54 @@ class PowerUp {
   }
 
   draw() {
-    const r = this.radius + Math.sin(this.pulse) * 1.5;
+    const r      = this.radius + Math.sin(this.pulse) * 1.5;
+    const shield = this.type === 'shield';
+    const color  = shield ? SHIELD_COLOR : POWERUP_COLOR;
+    const rgb    = shield ? '77, 210, 255' : '255, 210, 63';
 
     ctx.save();
     ctx.translate(this.x, this.y);
 
     // Halo
     const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, r * 1.9);
-    glow.addColorStop(0, 'rgba(255, 210, 63, 0.45)');
-    glow.addColorStop(1, 'rgba(255, 210, 63, 0)');
+    glow.addColorStop(0, `rgba(${rgb}, 0.45)`);
+    glow.addColorStop(1, `rgba(${rgb}, 0)`);
     ctx.fillStyle = glow;
     ctx.beginPath();
     ctx.arc(0, 0, r * 1.9, 0, Math.PI * 2);
     ctx.fill();
 
     // Aro
-    ctx.strokeStyle = POWERUP_COLOR;
+    ctx.strokeStyle = color;
     ctx.lineWidth   = 1.5;
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Rayo
-    ctx.fillStyle = POWERUP_COLOR;
-    ctx.beginPath();
-    ctx.moveTo( 2, -7);
-    ctx.lineTo(-5,  1);
-    ctx.lineTo(-1,  1);
-    ctx.lineTo(-2,  7);
-    ctx.lineTo( 5, -1);
-    ctx.lineTo( 1, -1);
-    ctx.closePath();
-    ctx.fill();
+    ctx.fillStyle = color;
+    if (shield) {
+      // Escudo
+      ctx.beginPath();
+      ctx.moveTo( 0, -8);
+      ctx.lineTo( 7, -5);
+      ctx.lineTo( 7,  1);
+      ctx.quadraticCurveTo( 7,  6, 0, 9);
+      ctx.quadraticCurveTo(-7,  6, -7, 1);
+      ctx.lineTo(-7, -5);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      // Rayo
+      ctx.beginPath();
+      ctx.moveTo( 2, -7);
+      ctx.lineTo(-5,  1);
+      ctx.lineTo(-1,  1);
+      ctx.lineTo(-2,  7);
+      ctx.lineTo( 5, -1);
+      ctx.lineTo( 1, -1);
+      ctx.closePath();
+      ctx.fill();
+    }
 
     ctx.restore();
   }
@@ -491,8 +531,10 @@ function update(dt) {
         a.dead = true;
         score += a.shooting ? SHOOTING_STAR_POINTS : POINTS[a.size];
         explode(a.x, a.y, a.shooting ? 14 : a.size * 5);
-        if (Math.random() < POWERUP_DROP_CHANCE)
-          powerups.push(new PowerUp(a.x, a.y));
+        if (Math.random() < POWERUP_DROP_CHANCE) {
+          const type = Math.random() < 0.5 ? 'shield' : 'speed';
+          powerups.push(new PowerUp(a.x, a.y, type));
+        }
         newAsteroids.push(...a.split());
       }
     }
@@ -504,7 +546,8 @@ function update(dt) {
   for (const p of powerups) {
     if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
       p.dead = true;
-      ship.speedTimer = SPEED_DURATION;
+      if (p.type === 'shield') ship.shield = true;
+      else                     ship.speedTimer = SPEED_DURATION;
       explode(p.x, p.y, 6);
     }
   }
@@ -512,12 +555,25 @@ function update(dt) {
 
   // Nave vs asteroide
   if (ship.invincible <= 0) {
+    const shieldSplits = [];
+    const hitRadius = ship.shield ? SHIELD_RADIUS : ship.radius;
     for (const a of asteroids) {
-      if (dist(ship, a) < ship.radius + a.radius * 0.82) {
-        killShip();
+      if (dist(ship, a) < hitRadius + a.radius * 0.82) {
+        if (ship.shield) {
+          // El escudo absorbe un único impacto y se rompe
+          ship.shield     = false;
+          ship.invincible = SHIELD_GRACE;
+          a.dead = true;
+          score += a.shooting ? SHOOTING_STAR_POINTS : POINTS[a.size];
+          explode(a.x, a.y, a.shooting ? 14 : a.size * 5);
+          shieldSplits.push(...a.split());
+        } else {
+          killShip();
+        }
         break;
       }
     }
+    asteroids = asteroids.filter(a => !a.dead).concat(shieldSplits);
   }
 
   // Nivel completado
@@ -554,6 +610,12 @@ function drawHUD() {
 
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
+
+  if (ship && ship.shield) {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = SHIELD_COLOR;
+    ctx.fillText('ESCUDO', 14, H - 38);
+  }
 
   if (ship && ship.speedTimer > 0) {
     ctx.textAlign = 'left';

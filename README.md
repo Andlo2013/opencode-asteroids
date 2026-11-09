@@ -45,4 +45,5 @@ Luego visita `http://localhost:3000`.
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
 - Power-up de velocidad: duplica la propulsión de la nave durante 5 segundos
+- Escudo: power-up que absorbe un único impacto de asteroide y desaparece; se muestra un indicador `ESCUDO` en el HUD
 - Estrella fugaz: asteroide especial que se mueve más rápido, deja estela y desaparece tras unos segundos. Da puntos extra y no se fragmenta.

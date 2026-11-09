@@ -15,7 +15,12 @@ const POWERUP_COLOR      = '#ffd23f';
 // ── Triple disparo ───────────────────────────────────────────────────────────
 const TRIPLE_DURATION = 5;        // segundos de duración
 const TRIPLE_SPREAD   = 0.21;     // ±12° para las balas laterales
-const TRIPLE_COLOR    = '#4dd0ff';
+const TRIPLE_COLOR    = '#ff9f43';
+
+// ── Escudo ────────────────────────────────────────────────────────────────────
+const SHIELD_COLOR       = '#4dd2ff';  // cian, distinto del amarillo de velocidad
+const SHIELD_RADIUS      = 26;         // radio de la burbuja
+const SHIELD_GRACE       = 0.8;        // invencibilidad breve tras absorber el golpe
 
 // ── Estrella fugaz ───────────────────────────────────────────────────────────
 const SHOOTING_STAR_CHANCE     = 0.35;  // probabilidad de aparecer por nivel
@@ -205,6 +210,7 @@ class Ship {
     this.shootCooldown = 0;
     this.speedTimer    = 0;
     this.tripleTimer   = 0;
+    this.shield        = false;
     this.dead          = false;
   }
 
@@ -273,7 +279,7 @@ class Ship {
       ctx.stroke();
     }
     if (this.tripleTimer > 0) {
-      ctx.strokeStyle = `rgba(77, 208, 255, ${0.35 + Math.sin(this.tripleTimer * 8) * 0.15})`;
+      ctx.strokeStyle = `rgba(255, 159, 67, ${0.35 + Math.sin(this.tripleTimer * 8) * 0.15})`;
       ctx.lineWidth   = 1.5;
       ctx.beginPath();
       ctx.arc(0, 0, 30, 0, Math.PI * 2);
@@ -299,6 +305,24 @@ class Ship {
       ctx.lineTo(-8 - flame, 0);
       ctx.lineTo(-8,  4);
       ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
+      ctx.stroke();
+    }
+
+    // Burbuja del escudo
+    if (this.shield) {
+      const t = performance.now() * 0.006;
+      const r = SHIELD_RADIUS + Math.sin(t) * 1.5;
+      ctx.strokeStyle = `rgba(77, 210, 255, ${0.65 + Math.sin(t) * 0.2})`;
+      ctx.lineWidth   = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(77, 210, 255, 0.08)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(77, 210, 255, 0.3)';
+      ctx.lineWidth   = 1;
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
       ctx.stroke();
     }
 
@@ -347,8 +371,12 @@ class PowerUp {
     this.radius = 11;
     this.ttl    = POWERUP_TTL;
     this.dead   = false;
-    this.color  = type === 'triple' ? TRIPLE_COLOR : POWERUP_COLOR;
-    this.rgb    = type === 'triple' ? '77, 208, 255' : '255, 210, 63';
+    this.color  = type === 'triple' ? TRIPLE_COLOR
+                : type === 'shield' ? SHIELD_COLOR
+                : POWERUP_COLOR;
+    this.rgb    = type === 'triple' ? '255, 159, 67'
+                : type === 'shield' ? '77, 210, 255'
+                : '255, 210, 63';
 
     const angle = rand(0, Math.PI * 2);
     const speed = rand(18, 40);
@@ -397,17 +425,30 @@ class PowerUp {
         ctx.stroke();
       }
     } else {
-      // Rayo
       ctx.fillStyle = this.color;
-      ctx.beginPath();
-      ctx.moveTo( 2, -7);
-      ctx.lineTo(-5,  1);
-      ctx.lineTo(-1,  1);
-      ctx.lineTo(-2,  7);
-      ctx.lineTo( 5, -1);
-      ctx.lineTo( 1, -1);
-      ctx.closePath();
-      ctx.fill();
+      if (this.type === 'shield') {
+        // Escudo
+        ctx.beginPath();
+        ctx.moveTo( 0, -8);
+        ctx.lineTo( 7, -5);
+        ctx.lineTo( 7,  1);
+        ctx.quadraticCurveTo( 7,  6, 0, 9);
+        ctx.quadraticCurveTo(-7,  6, -7, 1);
+        ctx.lineTo(-7, -5);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        // Rayo
+        ctx.beginPath();
+        ctx.moveTo( 2, -7);
+        ctx.lineTo(-5,  1);
+        ctx.lineTo(-1,  1);
+        ctx.lineTo(-2,  7);
+        ctx.lineTo( 5, -1);
+        ctx.lineTo( 1, -1);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
 
     ctx.restore();
@@ -527,8 +568,10 @@ function update(dt) {
         a.dead = true;
         score += a.shooting ? SHOOTING_STAR_POINTS : POINTS[a.size];
         explode(a.x, a.y, a.shooting ? 14 : a.size * 5);
-        if (Math.random() < POWERUP_DROP_CHANCE)
-          powerups.push(new PowerUp(a.x, a.y, Math.random() < 0.5 ? 'speed' : 'triple'));
+        if (Math.random() < POWERUP_DROP_CHANCE) {
+          const types = ['speed', 'triple', 'shield'];
+          powerups.push(new PowerUp(a.x, a.y, types[randInt(0, types.length - 1)]));
+        }
         newAsteroids.push(...a.split());
       }
     }
@@ -540,8 +583,9 @@ function update(dt) {
   for (const p of powerups) {
     if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
       p.dead = true;
-      if (p.type === 'triple') ship.tripleTimer = TRIPLE_DURATION;
-      else                     ship.speedTimer  = SPEED_DURATION;
+      if (p.type === 'triple')      ship.tripleTimer = TRIPLE_DURATION;
+      else if (p.type === 'shield') ship.shield = true;
+      else                          ship.speedTimer = SPEED_DURATION;
       explode(p.x, p.y, 6);
     }
   }
@@ -549,12 +593,25 @@ function update(dt) {
 
   // Nave vs asteroide
   if (ship.invincible <= 0) {
+    const shieldSplits = [];
+    const hitRadius = ship.shield ? SHIELD_RADIUS : ship.radius;
     for (const a of asteroids) {
-      if (dist(ship, a) < ship.radius + a.radius * 0.82) {
-        killShip();
+      if (dist(ship, a) < hitRadius + a.radius * 0.82) {
+        if (ship.shield) {
+          // El escudo absorbe un único impacto y se rompe
+          ship.shield     = false;
+          ship.invincible = SHIELD_GRACE;
+          a.dead = true;
+          score += a.shooting ? SHOOTING_STAR_POINTS : POINTS[a.size];
+          explode(a.x, a.y, a.shooting ? 14 : a.size * 5);
+          shieldSplits.push(...a.split());
+        } else {
+          killShip();
+        }
         break;
       }
     }
+    asteroids = asteroids.filter(a => !a.dead).concat(shieldSplits);
   }
 
   // Nivel completado
@@ -602,6 +659,11 @@ function drawHUD() {
   if (ship && ship.tripleTimer > 0) {
     ctx.fillStyle = TRIPLE_COLOR;
     ctx.fillText(`TRIPLE ${ship.tripleTimer.toFixed(1)}s`, 14, hudY);
+    hudY -= 20;
+  }
+  if (ship && ship.shield) {
+    ctx.fillStyle = SHIELD_COLOR;
+    ctx.fillText('ESCUDO', 14, hudY);
   }
 }
 

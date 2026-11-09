@@ -46,4 +46,5 @@ Luego visita `http://localhost:3000`.
 - Partículas de explosión al destruir asteroides
 - Power-up de velocidad: duplica la propulsión de la nave durante 5 segundos
 - Power-up de triple disparo: durante 5 segundos la nave dispara 3 balas en abanico
+- Escudo: power-up que absorbe un único impacto de asteroide y desaparece; se muestra un indicador `ESCUDO` en el HUD
 - Estrella fugaz: asteroide especial que se mueve más rápido, deja estela y desaparece tras unos segundos. Da puntos extra y no se fragmenta.

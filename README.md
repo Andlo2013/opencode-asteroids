@@ -45,4 +45,5 @@ Luego visita `http://localhost:3000`.
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
 - Power-up de velocidad: duplica la propulsión de la nave durante 5 segundos
+- Power-up de triple disparo: durante 5 segundos la nave dispara 3 balas en abanico
 - Estrella fugaz: asteroide especial que se mueve más rápido, deja estela y desaparece tras unos segundos. Da puntos extra y no se fragmenta.

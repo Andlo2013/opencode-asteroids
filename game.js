@@ -120,7 +120,19 @@ class Asteroid {
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
-  constructor() { this.reset(); }
+  constructor() {
+    this.type = 'normal';
+    this.reset();
+  }
+
+  get morada() { return this.type === 'morada'; }
+  get scale()  { return this.morada ? 2 : 1; }
+  get color()  { return this.morada ? '#a855f7' : '#fff'; }
+
+  alternar() {
+    this.type = this.morada ? 'normal' : 'morada';
+    this.radius = 12 * this.scale;
+  }
 
   reset() {
     this.x      = W / 2;
@@ -128,7 +140,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * this.scale;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -162,7 +174,7 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * this.scale;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
     return [new Bullet(ox, oy, this.angle)];
@@ -176,7 +188,8 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
+    ctx.scale(this.scale, this.scale);
+    ctx.strokeStyle = this.color;
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
@@ -307,6 +320,8 @@ function update(dt) {
     return;
   }
 
+  if (pressed('KeyM')) ship.alternar();
+
   // Disparar
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
@@ -327,7 +342,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
+        score += POINTS[a.size] * (ship.morada ? 2 : 1);
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
       }
@@ -355,7 +370,7 @@ function drawLifeIcon(x, y) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = ship.morada ? '#a855f7' : '#fff';
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
@@ -381,6 +396,9 @@ function drawHUD() {
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
 
+  ctx.font = '12px monospace';
+  ctx.fillStyle = ship.morada ? '#c084fc' : 'rgba(255,255,255,0.55)';
+  ctx.fillText(ship.morada ? 'NAVE MORADA — PUNTOS x2 (M PARA CAMBIAR)' : 'M: NAVE MORADA — PUNTOS x2', 14, 44);
 }
 
 function drawOverlay(title, sub) {

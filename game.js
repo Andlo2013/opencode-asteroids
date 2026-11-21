@@ -306,7 +306,19 @@ class Asteroid {
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
-  constructor() { this.reset(); }
+  constructor() {
+    this.type = 'normal';
+    this.reset();
+  }
+
+  get morada() { return this.type === 'morada'; }
+  get scale()  { return this.morada ? 2 : 1; }
+  get color()  { return this.morada ? '#a855f7' : '#fff'; }
+
+  alternar() {
+    this.type = this.morada ? 'normal' : 'morada';
+    this.radius = 12 * this.scale;
+  }
 
   reset() {
     this.x      = W / 2;
@@ -314,7 +326,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * this.scale;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -353,7 +365,11 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
+<<<<<<< HEAD
     const NOSE = SKINS[skinIndex].nose;
+=======
+    const NOSE = 21 * this.scale;
+>>>>>>> f9db52e75ef5917fe34e15c167b7aa885b5d96c9
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
 
@@ -378,7 +394,12 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
+<<<<<<< HEAD
     ctx.strokeStyle = skin.color;
+=======
+    ctx.scale(this.scale, this.scale);
+    ctx.strokeStyle = this.color;
+>>>>>>> f9db52e75ef5917fe34e15c167b7aa885b5d96c9
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
@@ -657,6 +678,8 @@ function update(dt) {
     return;
   }
 
+  if (pressed('KeyM')) ship.alternar();
+
   // Disparar
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
@@ -679,12 +702,17 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
+<<<<<<< HEAD
         score += a.shooting ? SHOOTING_STAR_POINTS : POINTS[a.size];
         explode(a.x, a.y, a.shooting ? 14 : a.size * 5);
         if (Math.random() < POWERUP_DROP_CHANCE) {
           const types = ['speed', 'triple', 'shield'];
           powerups.push(new PowerUp(a.x, a.y, types[randInt(0, types.length - 1)]));
         }
+=======
+        score += POINTS[a.size] * (ship.morada ? 2 : 1);
+        explode(a.x, a.y, a.size * 5);
+>>>>>>> f9db52e75ef5917fe34e15c167b7aa885b5d96c9
         newAsteroids.push(...a.split());
       }
     }
@@ -738,9 +766,14 @@ function drawLifeIcon(x, y) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
+<<<<<<< HEAD
   ctx.scale(0.5, 0.5);
   ctx.strokeStyle = skin.color;
   ctx.lineWidth   = 1.2 / 0.5;
+=======
+  ctx.strokeStyle = ship.morada ? '#a855f7' : '#fff';
+  ctx.lineWidth   = 1.2;
+>>>>>>> f9db52e75ef5917fe34e15c167b7aa885b5d96c9
   ctx.lineJoin    = 'round';
   strokeSkin(skin);
   ctx.restore();
@@ -759,6 +792,7 @@ function drawHUD() {
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
 
+<<<<<<< HEAD
   ctx.textAlign = 'left';
   let hudY = H - 18;
   if (ship && ship.speedTimer > 0) {
@@ -779,6 +813,11 @@ function drawHUD() {
   ctx.textAlign = 'right';
   ctx.fillStyle = SKINS[skinIndex].color;
   ctx.fillText(`SKIN  ${SKINS[skinIndex].name}  [S]`, W - 14, H - 18);
+=======
+  ctx.font = '12px monospace';
+  ctx.fillStyle = ship.morada ? '#c084fc' : 'rgba(255,255,255,0.55)';
+  ctx.fillText(ship.morada ? 'NAVE MORADA — PUNTOS x2 (M PARA CAMBIAR)' : 'M: NAVE MORADA — PUNTOS x2', 14, 44);
+>>>>>>> f9db52e75ef5917fe34e15c167b7aa885b5d96c9
 }
 
 function drawOverlay(title, sub, hint) {

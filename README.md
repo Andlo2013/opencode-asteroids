@@ -24,37 +24,39 @@ Luego visita `http://localhost:3000`.
 
 ## Controles
 
-| Tecla     | Acción     |
-| --------- | ---------- |
-| `←` `→`   | Rotar nave |
-| `↑`       | Propulsar  |
-| `Espacio` | Disparar   |
-| `S`       | Cambiar skin |
+| Tecla     | Acción                        |
+| --------- | ----------------------------- |
+| `←` `→`   | Rotar nave                    |
+| `↑`       | Propulsar                     |
+| `Espacio` | Disparar                      |
+| `M`       | Alternar nave normal / morada |
+| `S`       | Cambiar skin                  |
 
 ## Skins
 
 Pulsa `S` para cambiar la apariencia de la nave. La elección se guarda en el navegador y se mantiene al recargar.
 
-| Skin       | Estilo                    | Color   |
-| ---------- | ------------------------- | ------- |
-| Clásica    | Triángulo clásico         | Blanco  |
-| Interceptor| Caza con alas en flecha   | Cian    |
-| Ovni       | Platillo con cúpula       | Verde   |
-| Espectro   | Silueta angular stealth   | Magenta |
+| Skin        | Estilo                  | Color   |
+| ----------- | ----------------------- | ------- |
+| Clásica     | Triángulo clásico       | Blanco  |
+| Interceptor | Caza con alas en flecha | Cian    |
+| Ovni        | Platillo con cúpula     | Verde   |
+| Espectro    | Silueta angular stealth | Magenta |
 
 Las skins son solo estéticas: no cambian el tamaño de colisión ni la dificultad.
 
 ## Puntuación
 
-| Asteroide | Puntos |
-| --------- | ------ |
-| Grande    | 20     |
-| Mediano   | 50     |
-| Pequeño   | 100    |
-| Estrella fugaz | 150 |
+| Asteroide      | Puntos |
+| -------------- | ------ |
+| Grande         | 20     |
+| Mediano        | 50     |
+| Pequeño        | 100    |
+| Estrella fugaz | 150    |
 
 ## Características
 
+- Nave morada (tecla `M`): el doble de grande que la normal, pero otorga el doble de puntos
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides

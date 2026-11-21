@@ -1,0 +1,68 @@
+name: triage-actions
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/big-pickle
+          prompt: |
+            Se abrió el issue #${{ github.event.issue.number }} en ${{ github.repository }}.
+            Tu tarea es formatearlo y enriquecerlo para revisión, sin usar requests HTTP manuales (puedes usar `gh` CLI si lo necesitas).
+
+            Reglas obligatorias:
+            1. Conserva el texto original del issue EXACTAMENTE como está, sin modificarlo ni resumirlo.
+            2. Si el body ya contiene `<!-- issue-formatted -->`, no hagas ningún cambio.
+            3. Usa solo labels que ya existen en el repositorio. No crees labels nuevos.
+            4. Labels existentes disponibles: accessibility, bug, documentation, duplicate, enhancement, good first issue, help wanted, invalid, question, wontfix.
+
+            Detección de labels (aplica solo los que coincidan, según título + body, case-insensitive):
+            - `bug`: bug, error, falla, crash, no funciona, rompe
+            - `enhancement`: feature, mejora, añadir, agregar, nueva, implementar, skin, power-up, escudo
+            - `documentation`: readme, documentación, documentacion, docs
+            - `question`: pregunta, duda, cómo, como, ?
+
+            Formato:
+            - Agrega los labels detectados al issue.
+            - Anexa al FINAL del body original una sección de contexto (no reemplaces el body).
+            - Usa este marcador en la sección anexada: `<!-- issue-formatted -->`.
+
+            Plantilla de la sección a anexar (ajusta los valores dinámicos):
+
+            ---
+            <!-- issue-formatted -->
+            ## Contexto para revisión
+
+            | Campo | Valor |
+            | --- | --- |
+            | Autor | @<autor> |
+            | Creado | <fecha de creación> |
+            | Labels aplicados | <labels detectados o "_Ninguno detectado automáticamente_"> |
+
+            ### Checklist de triage
+            - [ ] Reproducido / comprendido
+            - [ ] Área identificada (`game.js`, `index.html`, `README.md`, otro)
+            - [ ] Severidad definida (bug / mejora / pregunta)
+
+            ### Notas útiles para este repo
+            - Proyecto sin tests automatizados: verificar abriendo `index.html` o con `npx serve .`.
+            - Si es bug de juego: incluir navegador/OS, pasos para reproducir, estado (`playing`/`dead`/`gameover`), y si aplica nave normal/morada o skin.
+            - Referencias: [`game.js`](./game.js), [`index.html`](./index.html), [`README.md`](./README.md)

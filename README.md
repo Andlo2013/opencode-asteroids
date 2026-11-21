@@ -29,6 +29,7 @@ Luego visita `http://localhost:3000`.
 | `←` `→`   | Rotar nave |
 | `↑`       | Propulsar  |
 | `Espacio` | Disparar   |
+| `M`       | Alternar nave normal / morada |
 
 ## Puntuación
 
@@ -40,6 +41,7 @@ Luego visita `http://localhost:3000`.
 
 ## Características
 
+- Nave morada (tecla `M`): el doble de grande que la normal, pero otorga el doble de puntos
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides

@@ -29,6 +29,7 @@ Luego visita `http://localhost:3000`.
 | `←` `→`   | Rotar nave |
 | `↑`       | Propulsar  |
 | `Espacio` | Disparar   |
+| `N`       | Alternar nave morada |
 
 ## Puntuación
 
@@ -38,8 +39,11 @@ Luego visita `http://localhost:3000`.
 | Mediano   | 50     |
 | Pequeño   | 100    |
 
+Con la nave morada cada asteroide destruido otorga el doble de puntos.
+
 ## Características
 
+- Nave morada opcional (`N`): el doble de tamaño y el doble de puntos
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides

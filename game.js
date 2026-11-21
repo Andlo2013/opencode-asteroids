@@ -31,7 +31,7 @@ const randInt = (min, max) => Math.floor(rand(min, max + 1));
 
 // ── Bullet ────────────────────────────────────────────────────────────────────
 class Bullet {
-  constructor(x, y, angle) {
+  constructor(x, y, angle, scoreMultiplier = 1) {
     this.x = x;
     this.y = y;
     const SPEED = 520;
@@ -39,6 +39,7 @@ class Bullet {
     this.vy = Math.sin(angle) * SPEED;
     this.ttl  = 1.1;
     this.radius = 2;
+    this.scoreMultiplier = scoreMultiplier;
     this.dead = false;
   }
 
@@ -120,7 +121,13 @@ class Asteroid {
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
-  constructor() { this.reset(); }
+  constructor(special = false) {
+    this.special = special;
+    this.reset();
+  }
+
+  get scale() { return this.special ? 2 : 1; }
+  get scoreMultiplier() { return this.special ? 2 : 1; }
 
   reset() {
     this.x      = W / 2;
@@ -128,11 +135,16 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * this.scale;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
     this.dead          = false;
+  }
+
+  toggleSpecial() {
+    this.special = !this.special;
+    this.radius  = 12 * this.scale;
   }
 
   update(dt) {
@@ -162,10 +174,10 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * this.scale;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
-    return [new Bullet(ox, oy, this.angle)];
+    return [new Bullet(ox, oy, this.angle, this.scoreMultiplier)];
   }
 
   draw() {
@@ -176,7 +188,8 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
+    ctx.scale(this.scale, this.scale);
+    ctx.strokeStyle = this.special ? '#a855f7' : '#fff';
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
@@ -254,7 +267,8 @@ function spawnAsteroids(count) {
 }
 
 function initGame() {
-  ship          = new Ship();
+  const special = ship ? ship.special : false;
+  ship          = new Ship(special);
   bullets   = [];
   asteroids = [];
   particles = [];
@@ -292,6 +306,7 @@ function killShip() {
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(dt) {
   if (state === 'gameover') {
+    if (pressed('KeyN')) ship.toggleSpecial();
     if (pressed('Space')) initGame();
     particles.forEach(p => p.update(dt));
     particles = particles.filter(p => !p.dead);
@@ -299,6 +314,7 @@ function update(dt) {
   }
 
   if (state === 'dead') {
+    if (pressed('KeyN')) ship.toggleSpecial();
     deadTimer -= dt;
     particles.forEach(p => p.update(dt));
     particles = particles.filter(p => !p.dead);
@@ -306,6 +322,8 @@ function update(dt) {
     if (deadTimer <= 0) { state = 'playing'; ship.reset(); }
     return;
   }
+
+  if (pressed('KeyN')) ship.toggleSpecial();
 
   // Disparar
   if (pressed('Space')) {
@@ -327,7 +345,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
+        score += POINTS[a.size] * b.scoreMultiplier;
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
       }
@@ -380,6 +398,10 @@ function drawHUD() {
 
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
+
+  ctx.fillStyle = ship.special ? '#a855f7' : '#fff';
+  ctx.textAlign = 'left';
+  ctx.fillText(ship.special ? 'NAVE MORADA  x2 PUNTOS' : 'NAVE NORMAL  —  N PARA CAMBIAR', 14, 46);
 
 }
 
